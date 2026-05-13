@@ -1,0 +1,94 @@
+# SPDX-FileCopyrightText: 2026 ProFACE developers
+#
+# SPDX-License-Identifier: MIT
+
+[project]
+dynamic = ["version"]
+name = "proface-core-mesh"
+description = "ProFACE core data structures for FE mesh and results"
+readme = "README.md"
+authors = [
+    { name = "Stefano Miccoli", email = "stefano.miccoli@polimi.it" }
+]
+maintainers = [
+    { name = "ProFACE developers", email = "proface@polimi.it" }
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Typing :: Typed",
+]
+requires-python = ">=3.12"
+dependencies = []
+license = "MIT"
+license-files = ["LICENSES/MIT.txt"]
+
+[project.urls]
+documentation = "https://github.com/ProFACE-dev/proface-core-mesh#proface-core-mesh"
+issues = "https://github.com/ProFACE-dev/proface-core-mesh/issues"
+source = "https://github.com/ProFACE-dev/proface-core-mesh"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.0.0",
+    "ruff>=0.15.8",
+]
+
+#
+# hatch
+#
+[tool.hatch.version]
+source = "vcs"
+[tool.hatch.version.raw-options]
+version_scheme = "release-branch-semver"
+local_scheme = "node-and-date"
+fallback_version = "0.0.0"
+[tool.hatch.build.hooks.vcs]
+version-file = "src/proface/core/mesh/_version.py"
+[tool.hatch.build.targets.wheel]
+packages = ["src/proface"]
+
+#
+# ruff
+#
+[tool.ruff]
+line-length = 80
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["A", "ARG", "B", "BLE", "C4", "C90", "COM818",
+  "E", "W", "EM", "F", "FA", "FBT", "FLY", "G", "I", "ICN",
+  "INP", "INT", "ISC", "N", "NPY", "PERF", "PGH", "PIE",
+  "PLE", "PLR", "PLW", "PT", "PYI", "RET", "RUF", "S",
+  "SIM", "SLF", "SLOT", "T10", "T20", "TCH", "TRY", "TID",
+  "UP", "YTT",
+]
+ignore = ["S101", "PT015", "B011", "TRY400"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["proface"]
+
+#
+# uv
+#
+[tool.uv]
+prerelease = "if-necessary-or-explicit"
+resolution = "lowest-direct"
+
+#
+# mypy
+#
+[tool.mypy]
+check_untyped_defs = true
+explicit_package_bases = true
+namespace_packages = true
+mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
+warn_return_any = true
+warn_unused_configs = true
+strict = true

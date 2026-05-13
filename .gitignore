@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 ProFACE developers
+#
+# SPDX-License-Identifier: CC0-1.0
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# hatch-vcs generated file
+src/proface/core/mesh/_version.py
