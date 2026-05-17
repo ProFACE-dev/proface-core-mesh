@@ -31,12 +31,12 @@ def test_nodes_direct_initialization_accepts_empty_nodes() -> None:
 
 
 def test_nodes_direct_initialization_rejects_invalid_ids_shape() -> None:
-    with pytest.raises(ValueError, match="Node ids must be 1-dimensional"):
+    with pytest.raises(ValueError, match=r"Nodes\.ids must be 1-dimensional"):
         Nodes(ids=[[1, 2]], coord=[[0, 0, 0]])
 
 
 def test_nodes_direct_initialization_rejects_duplicate_ids() -> None:
-    with pytest.raises(ValueError, match="Node ids must be unique"):
+    with pytest.raises(ValueError, match=r"Nodes\.ids must be unique"):
         Nodes(ids=[1, 1], coord=[[0, 0, 0], [1, 0, 0]])
 
 
@@ -78,7 +78,9 @@ def test_elements_direct_initialization_accepts_empty_elements() -> None:
 
 
 def test_elements_direct_initialization_rejects_invalid_ids_shape() -> None:
-    with pytest.raises(ValueError, match="Element ids must be 1-dimensional"):
+    with pytest.raises(
+        ValueError, match=r"Elements\.ids must be 1-dimensional"
+    ):
         Elements(
             topology=Topology.C3D4,
             ids=[[10, 11]],
@@ -87,7 +89,7 @@ def test_elements_direct_initialization_rejects_invalid_ids_shape() -> None:
 
 
 def test_elements_direct_initialization_rejects_duplicate_ids() -> None:
-    with pytest.raises(ValueError, match="Element ids must be unique"):
+    with pytest.raises(ValueError, match=r"Elements\.ids must be unique"):
         Elements(
             topology=Topology.C3D4,
             ids=[10, 10],

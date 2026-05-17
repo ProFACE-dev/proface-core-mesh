@@ -70,23 +70,24 @@ def _to_coord(val: npt.ArrayLike) -> npt.NDArray[MESH_COORD]:
     return np.asarray(val, dtype=MESH_COORD)
 
 
+def _check_ids(
+    instance: object, _attribute: object, value: npt.NDArray[MESH_IDS]
+) -> None:
+    name = instance.__class__.__name__
+    if value.ndim != 1:
+        msg = f"{name}.ids must be 1-dimensional"
+        raise ValueError(msg)
+    if len(np.unique_values(value)) != len(value):
+        msg = f"{name}.ids must be unique"
+        raise ValueError(msg)
+
+
 @attrs.frozen
 class Nodes:
     """container for mesh nodes: numbers (aka labels) and coordinates"""
 
-    ids: IDS_1D = attrs.field(converter=_to_ids)
+    ids: IDS_1D = attrs.field(converter=_to_ids, validator=[_check_ids])
     coord: COORD = attrs.field(converter=_to_coord)
-
-    @ids.validator
-    def check_ids(
-        self, _attribute: object, value: npt.NDArray[MESH_IDS]
-    ) -> None:
-        if value.ndim != 1:
-            msg = "Node ids must be 1-dimensional"
-            raise ValueError(msg)
-        if len(np.unique_values(value)) != len(value):
-            msg = "Node ids must be unique"
-            raise ValueError(msg)
 
     @coord.validator
     def check_coord(
@@ -112,19 +113,8 @@ class Elements:
     """container for same topology elements"""
 
     topology: Topology
-    ids: IDS_1D = attrs.field(converter=_to_ids)
+    ids: IDS_1D = attrs.field(converter=_to_ids, validator=[_check_ids])
     incidences: IDS_2D = attrs.field(converter=_to_ids)
-
-    @ids.validator
-    def check_ids(
-        self, _attribute: object, value: npt.NDArray[MESH_IDS]
-    ) -> None:
-        if value.ndim != 1:
-            msg = "Element ids must be 1-dimensional"
-            raise ValueError(msg)
-        if len(np.unique_values(value)) != len(value):
-            msg = "Element ids must be unique"
-            raise ValueError(msg)
 
     @incidences.validator
     def check_incidences(
