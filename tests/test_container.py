@@ -32,6 +32,19 @@ def test_nodes_direct_initialization_accepts_empty_nodes() -> None:
     np.testing.assert_array_equal(nodes.numbers, [])
 
 
+def test_nodes_direct_initialization_supports_len() -> None:
+    numbers = [1, 2]
+    nodes = Nodes(numbers=numbers, coordinates=[[0, 0, 0], [1, 0, 0]])
+
+    assert len(nodes) == len(numbers)
+
+
+def test_nodes_direct_initialization_supports_str() -> None:
+    nodes = Nodes(numbers=[1], coordinates=[[0, 0, 0]])
+
+    assert isinstance(str(nodes), str)
+
+
 def test_nodes_direct_initialization_rejects_positional_arguments() -> None:
     with pytest.raises(TypeError, match="positional"):
         cast("Any", Nodes)([1], [[0, 0, 0]])
@@ -85,6 +98,27 @@ def test_elements_direct_initialization_accepts_empty_elements() -> None:
     assert elements.incidences.dtype == np.uint32
     assert elements.incidences.shape == (0, Topology.C3D4.value)
     np.testing.assert_array_equal(elements.nodes, [])
+
+
+def test_elements_direct_initialization_supports_len() -> None:
+    numbers = [10, 11]
+    elements = Elements(
+        topology=Topology.C3D4,
+        numbers=numbers,
+        incidences=[[1, 2, 3, 4], [2, 3, 4, 5]],
+    )
+
+    assert len(elements) == len(numbers)
+
+
+def test_elements_direct_initialization_supports_str() -> None:
+    elements = Elements(
+        topology=Topology.C3D4,
+        numbers=[10],
+        incidences=[[1, 2, 3, 4]],
+    )
+
+    assert isinstance(str(elements), str)
 
 
 def test_elements_direct_initialization_rejects_positional_arguments() -> None:
@@ -191,6 +225,18 @@ def test_mesh_elements_dict_indexes_elements_by_topology() -> None:
         Topology.C3D4: c3d4,
         Topology.C3D5: c3d5,
     }
+
+
+def test_mesh_direct_initialization_supports_str() -> None:
+    nodes = Nodes(numbers=[1, 2, 3, 4], coordinates=np.zeros((4, DIM)))
+    elements = Elements(
+        topology=Topology.C3D4,
+        numbers=[10],
+        incidences=[[1, 2, 3, 4]],
+    )
+    mesh = Mesh(nodes=nodes, elements=(elements,))
+
+    assert isinstance(str(mesh), str)
 
 
 def test_mesh_direct_initialization_rejects_positional_arguments() -> None:

@@ -91,6 +91,9 @@ class _Numbered:
             msg = f"{name}.numbers must be unique"
             raise ValueError(msg)
 
+    def __len__(self) -> int:
+        return len(self.numbers)
+
 
 @attrs.frozen(kw_only=True)
 class Nodes(_Numbered):
@@ -122,6 +125,9 @@ class Nodes(_Numbered):
                 dtype=MESH_COORDINATES,
             ),
         )
+
+    def __str__(self) -> str:
+        return f"Nodes ({len(self):_d})"
 
 
 @attrs.frozen(kw_only=True)
@@ -169,6 +175,9 @@ class Elements(_Numbered):
 
         return els
 
+    def __str__(self) -> str:
+        return f"Elements ({len(self):_d} {self.topology.name})"
+
 
 @attrs.frozen(kw_only=True)
 class Mesh:
@@ -214,3 +223,6 @@ class Mesh:
         )
 
         return cls(nodes=nodes, elements=elements)
+
+    def __str__(self) -> str:
+        return f"Mesh: {self.nodes}; {', '.join(str(g) for g in self.elements)}"
