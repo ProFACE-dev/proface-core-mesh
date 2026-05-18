@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: MIT
 
+from typing import Any, cast
+
 import numpy as np
 import pytest
 
@@ -28,6 +30,11 @@ def test_nodes_direct_initialization_accepts_empty_nodes() -> None:
     assert nodes.coord.dtype == np.float32
     assert nodes.coord.shape == (0, DIM)
     np.testing.assert_array_equal(nodes.ids, [])
+
+
+def test_nodes_direct_initialization_rejects_positional_arguments() -> None:
+    with pytest.raises(TypeError, match="positional"):
+        cast("Any", Nodes)([1], [[0, 0, 0]])
 
 
 def test_nodes_direct_initialization_rejects_invalid_ids_shape() -> None:
@@ -75,6 +82,11 @@ def test_elements_direct_initialization_accepts_empty_elements() -> None:
     assert elements.incidences.dtype == np.uint32
     assert elements.incidences.shape == (0, Topology.C3D4.value)
     np.testing.assert_array_equal(elements.nodes, [])
+
+
+def test_elements_direct_initialization_rejects_positional_arguments() -> None:
+    with pytest.raises(TypeError, match="positional"):
+        cast("Any", Elements)(Topology.C3D4, [10], [[1, 2, 3, 4]])
 
 
 def test_elements_direct_initialization_rejects_invalid_ids_shape() -> None:
@@ -155,6 +167,13 @@ def test_mesh_direct_initialization_accepts_empty_elements() -> None:
 
     assert mesh.nodes is nodes
     assert mesh.elements == ()
+
+
+def test_mesh_direct_initialization_rejects_positional_arguments() -> None:
+    nodes = Nodes(ids=[1], coord=[[0, 0, 0]])
+
+    with pytest.raises(TypeError, match="positional"):
+        cast("Any", Mesh)(nodes, ())
 
 
 def test_mesh_direct_initialization_rejects_unknown_node_references() -> None:

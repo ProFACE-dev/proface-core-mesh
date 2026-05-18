@@ -70,30 +70,32 @@ def _to_coord(val: npt.ArrayLike) -> npt.NDArray[MESH_COORD]:
     return np.asarray(val, dtype=MESH_COORD)
 
 
-def _check_ids(
-    instance: object, _attribute: object, value: npt.NDArray[MESH_IDS]
-) -> None:
-    name = instance.__class__.__name__
-    if value.ndim != 1:
-        msg = f"{name}.ids must be 1-dimensional"
-        raise ValueError(msg)
-    if len(np.unique_values(value)) != len(value):
-        msg = f"{name}.ids must be unique"
-        raise ValueError(msg)
-
-
 _cmp_numpy = attrs.cmp_using(eq=np.array_equal)
 
 
-@attrs.frozen
-class Nodes:
+@attrs.frozen(kw_only=True)
+class _Numbered:
+    """container for numbered entities"""
+
+    ids: IDS_1D = attrs.field(converter=_to_ids, eq=_cmp_numpy)
+
+    @ids.validator
+    def _check_ids(
+        self, _attribute: object, value: npt.NDArray[MESH_IDS]
+    ) -> None:
+        name = self.__class__.__name__
+        if value.ndim != 1:
+            msg = f"{name}.ids must be 1-dimensional"
+            raise ValueError(msg)
+        if len(np.unique_values(value)) != len(value):
+            msg = f"{name}.ids must be unique"
+            raise ValueError(msg)
+
+
+@attrs.frozen(kw_only=True)
+class Nodes(_Numbered):
     """container for mesh nodes: numbers (aka labels) and coordinates"""
 
-    ids: IDS_1D = attrs.field(
-        converter=_to_ids,
-        validator=[_check_ids],
-        eq=_cmp_numpy,
-    )
     coord: COORD = attrs.field(converter=_to_coord, eq=_cmp_numpy)
 
     @coord.validator
@@ -115,16 +117,11 @@ class Nodes:
         )
 
 
-@attrs.frozen
-class Elements:
+@attrs.frozen(kw_only=True)
+class Elements(_Numbered):
     """container for same topology elements"""
 
     topology: Topology
-    ids: IDS_1D = attrs.field(
-        converter=_to_ids,
-        validator=[_check_ids],
-        eq=_cmp_numpy,
-    )
     incidences: IDS_2D = attrs.field(converter=_to_ids, eq=_cmp_numpy)
 
     @incidences.validator
@@ -166,7 +163,7 @@ class Elements:
         return els
 
 
-@attrs.frozen
+@attrs.frozen(kw_only=True)
 class Mesh:
     """container for mesh data"""
 
