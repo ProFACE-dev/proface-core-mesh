@@ -183,7 +183,13 @@ class Mesh:
     ) -> None:
         if not value:
             return
+
+        topologies = []
         for g in value:
+            if g.topology in topologies:
+                msg = f"Repeated topology: {g.topology.name}"
+                raise ValueError(msg)
+            topologies.append(g.topology)
             if not np.isin(g.incidences, self.nodes.numbers).all():
                 msg = f"Elements ({g.topology.name}) reference unknown nodes"
                 raise ValueError(msg)
@@ -191,6 +197,10 @@ class Mesh:
         if len(np.unique_values(numbers)) != len(numbers):
             msg = "Element numbers are not unique"
             raise ValueError(msg)
+
+    @property
+    def elements_dict(self) -> dict[Topology, Elements]:
+        return {e.topology: e for e in self.elements}
 
     @classmethod
     def from_container(cls, container: Group) -> "Mesh":

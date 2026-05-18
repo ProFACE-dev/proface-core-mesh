@@ -172,6 +172,27 @@ def test_mesh_direct_initialization_accepts_empty_elements() -> None:
     assert mesh.elements == ()
 
 
+def test_mesh_elements_dict_indexes_elements_by_topology() -> None:
+    nodes = Nodes(numbers=[1, 2, 3, 4, 5], coordinates=np.zeros((5, DIM)))
+    c3d4 = Elements(
+        topology=Topology.C3D4,
+        numbers=[10],
+        incidences=[[1, 2, 3, 4]],
+    )
+    c3d5 = Elements(
+        topology=Topology.C3D5,
+        numbers=[20],
+        incidences=[[1, 2, 3, 4, 5]],
+    )
+
+    mesh = Mesh(nodes=nodes, elements=(c3d4, c3d5))
+
+    assert mesh.elements_dict == {
+        Topology.C3D4: c3d4,
+        Topology.C3D5: c3d5,
+    }
+
+
 def test_mesh_direct_initialization_rejects_positional_arguments() -> None:
     nodes = Nodes(numbers=[1], coordinates=[[0, 0, 0]])
 
@@ -190,6 +211,23 @@ def test_mesh_direct_initialization_rejects_unknown_node_references() -> None:
     match = r"Elements \(C3D4\) reference unknown nodes"
     with pytest.raises(ValueError, match=match):
         Mesh(nodes=nodes, elements=(elements,))
+
+
+def test_mesh_direct_initialization_rejects_repeated_topologies() -> None:
+    nodes = Nodes(numbers=[1, 2, 3, 4, 5], coordinates=np.zeros((5, DIM)))
+    first = Elements(
+        topology=Topology.C3D4,
+        numbers=[10],
+        incidences=[[1, 2, 3, 4]],
+    )
+    second = Elements(
+        topology=Topology.C3D4,
+        numbers=[11],
+        incidences=[[2, 3, 4, 5]],
+    )
+
+    with pytest.raises(ValueError, match="Repeated topology: C3D4"):
+        Mesh(nodes=nodes, elements=(first, second))
 
 
 def test_mesh_direct_initialization_rejects_duplicate_element_numbers() -> None:
