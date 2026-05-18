@@ -27,12 +27,12 @@ class Topology(enum.Enum):
 
 
 MESH_IDS = np.uint32
-MESH_COORD = np.float32
+MESH_COORDINATES = np.float32
 
 type Group = Mapping[str, Any]
 type IDS_1D = np.ndarray[tuple[int], np.dtype[MESH_IDS]]
 type IDS_2D = np.ndarray[tuple[int, int], np.dtype[MESH_IDS]]
-type COORD = np.ndarray[tuple[int, int], np.dtype[MESH_COORD]]
+type COORDINATES = np.ndarray[tuple[int, int], np.dtype[MESH_COORDINATES]]
 
 
 def _get(container: Group, key: str) -> Any:
@@ -62,12 +62,12 @@ def _group(container: Group, key: str) -> Group:
     return value
 
 
-def _to_ids(val: npt.ArrayLike) -> npt.NDArray[MESH_IDS]:
+def _to_numbers(val: npt.ArrayLike) -> npt.NDArray[MESH_IDS]:
     return np.asarray(val, dtype=MESH_IDS)
 
 
-def _to_coord(val: npt.ArrayLike) -> npt.NDArray[MESH_COORD]:
-    return np.asarray(val, dtype=MESH_COORD)
+def _to_coordinates(val: npt.ArrayLike) -> npt.NDArray[MESH_COORDINATES]:
+    return np.asarray(val, dtype=MESH_COORDINATES)
 
 
 _cmp_numpy = attrs.cmp_using(eq=np.array_equal)
@@ -77,18 +77,18 @@ _cmp_numpy = attrs.cmp_using(eq=np.array_equal)
 class _Numbered:
     """container for numbered entities"""
 
-    ids: IDS_1D = attrs.field(converter=_to_ids, eq=_cmp_numpy)
+    numbers: IDS_1D = attrs.field(converter=_to_numbers, eq=_cmp_numpy)
 
-    @ids.validator
-    def _check_ids(
+    @numbers.validator
+    def _check_numbers(
         self, _attribute: object, value: npt.NDArray[MESH_IDS]
     ) -> None:
         name = self.__class__.__name__
         if value.ndim != 1:
-            msg = f"{name}.ids must be 1-dimensional"
+            msg = f"{name}.numbers must be 1-dimensional"
             raise ValueError(msg)
         if len(np.unique_values(value)) != len(value):
-            msg = f"{name}.ids must be unique"
+            msg = f"{name}.numbers must be unique"
             raise ValueError(msg)
 
 
@@ -96,13 +96,16 @@ class _Numbered:
 class Nodes(_Numbered):
     """container for mesh nodes: numbers (aka labels) and coordinates"""
 
-    coord: COORD = attrs.field(converter=_to_coord, eq=_cmp_numpy)
+    coordinates: COORDINATES = attrs.field(
+        converter=_to_coordinates,
+        eq=_cmp_numpy,
+    )
 
-    @coord.validator
-    def check_coord(
-        self, _attribute: object, value: npt.NDArray[MESH_COORD]
+    @coordinates.validator
+    def check_coordinates(
+        self, _attribute: object, value: npt.NDArray[MESH_COORDINATES]
     ) -> None:
-        if value.shape != (len(self.ids), DIM):
+        if value.shape != (len(self.numbers), DIM):
             msg = "Node coordinates must have shape (number of nodes, DIM)"
             raise ValueError(msg)
 
@@ -112,8 +115,12 @@ class Nodes(_Numbered):
             msg = f"Argument '{container!r}' is not a Mapping"
             raise TypeError(msg)
         return cls(
-            ids=_array(container, "numbers", dtype=MESH_IDS),
-            coord=_array(container, "coordinates", dtype=MESH_COORD),
+            numbers=_array(container, "numbers", dtype=MESH_IDS),
+            coordinates=_array(
+                container,
+                "coordinates",
+                dtype=MESH_COORDINATES,
+            ),
         )
 
 
@@ -122,7 +129,7 @@ class Elements(_Numbered):
     """container for same topology elements"""
 
     topology: Topology
-    incidences: IDS_2D = attrs.field(converter=_to_ids, eq=_cmp_numpy)
+    incidences: IDS_2D = attrs.field(converter=_to_numbers, eq=_cmp_numpy)
 
     @incidences.validator
     def check_incidences(
@@ -131,8 +138,8 @@ class Elements(_Numbered):
         if value.ndim != 2:  # noqa: PLR2004
             msg = "Element incidences must be 2-dimensional"
             raise ValueError(msg)
-        if len(value) != len(self.ids):
-            msg = "Element ids and incidences must have the same length"
+        if len(value) != len(self.numbers):
+            msg = "Element numbers and incidences must have the same length"
             raise ValueError(msg)
         if value.shape[1] != self.topology.value:
             msg = "Element incidences do not match topology"
@@ -147,13 +154,13 @@ class Elements(_Numbered):
         if not isinstance(container, Mapping):
             msg = f"Argument '{container!r}' is not a Mapping"
             raise TypeError(msg)
-        ids = _array(container, "numbers", dtype=MESH_IDS)
+        numbers = _array(container, "numbers", dtype=MESH_IDS)
         incidences = _array(container, "incidences", dtype=MESH_IDS)
         if incidences.ndim != 2:  # noqa: PLR2004
             msg = "Element incidences must be 2-dimensional"
             raise ValueError(msg)
         topology = Topology(incidences.shape[1])
-        els = cls(topology=topology, ids=ids, incidences=incidences)
+        els = cls(topology=topology, numbers=numbers, incidences=incidences)
 
         nodes = _array(container, "nodes", dtype=MESH_IDS)
         if not np.array_equal(nodes, els.nodes):
@@ -177,11 +184,11 @@ class Mesh:
         if not value:
             return
         for g in value:
-            if not np.isin(g.incidences, self.nodes.ids).all():
+            if not np.isin(g.incidences, self.nodes.numbers).all():
                 msg = f"Elements ({g.topology.name}) reference unknown nodes"
                 raise ValueError(msg)
-        ids = np.concat([g.ids for g in value])
-        if len(np.unique_values(ids)) != len(ids):
+        numbers = np.concat([g.numbers for g in value])
+        if len(np.unique_values(numbers)) != len(numbers):
             msg = "Element numbers are not unique"
             raise ValueError(msg)
 

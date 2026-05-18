@@ -37,10 +37,10 @@ def _c3d5_container() -> dict[str, Any]:
 def test_nodes_from_container_converts_valid_mapping() -> None:
     nodes = Nodes.from_container(_nodes_container())
 
-    assert nodes.ids.dtype == np.uint32
-    assert nodes.coord.dtype == np.float32
-    assert nodes.coord.shape == (5, DIM)
-    np.testing.assert_array_equal(nodes.ids, [1, 2, 3, 4, 5])
+    assert nodes.numbers.dtype == np.uint32
+    assert nodes.coordinates.dtype == np.float32
+    assert nodes.coordinates.shape == (5, DIM)
+    np.testing.assert_array_equal(nodes.numbers, [1, 2, 3, 4, 5])
 
 
 def test_nodes_from_container_accepts_empty_nodes() -> None:
@@ -51,8 +51,8 @@ def test_nodes_from_container_accepts_empty_nodes() -> None:
         },
     )
 
-    assert nodes.coord.shape == (0, DIM)
-    np.testing.assert_array_equal(nodes.ids, [])
+    assert nodes.coordinates.shape == (0, DIM)
+    np.testing.assert_array_equal(nodes.numbers, [])
 
 
 def test_nodes_from_container_rejects_non_mapping() -> None:
@@ -94,9 +94,9 @@ def test_elements_from_container_converts_valid_mapping() -> None:
     elements = Elements.from_container(_c3d4_container())
 
     assert elements.topology is Topology.C3D4
-    assert elements.ids.dtype == np.uint32
+    assert elements.numbers.dtype == np.uint32
     assert elements.incidences.dtype == np.uint32
-    np.testing.assert_array_equal(elements.ids, [10])
+    np.testing.assert_array_equal(elements.numbers, [10])
     np.testing.assert_array_equal(elements.incidences, [[1, 2, 3, 4]])
     np.testing.assert_array_equal(elements.nodes, [1, 2, 3, 4])
 
@@ -187,7 +187,7 @@ def test_elements_from_container_rejects_unsupported_topology() -> None:
 
 
 def test_elements_from_container_rejects_length_mismatch() -> None:
-    match = "Element ids and incidences must have the same length"
+    match = "Element numbers and incidences must have the same length"
     with pytest.raises(ValueError, match=match):
         Elements.from_container(
             {
@@ -221,7 +221,7 @@ def test_mesh_from_container_converts_valid_mapping() -> None:
         },
     )
 
-    assert mesh.nodes.ids.dtype == np.uint32
+    assert mesh.nodes.numbers.dtype == np.uint32
     assert [g.topology for g in mesh.elements] == [
         Topology.C3D4,
         Topology.C3D5,
@@ -239,7 +239,7 @@ def test_mesh_from_container_accepts_empty_mesh() -> None:
         },
     )
 
-    assert mesh.nodes.coord.shape == (0, DIM)
+    assert mesh.nodes.coordinates.shape == (0, DIM)
     assert mesh.elements == ()
 
 
@@ -257,7 +257,7 @@ def test_mesh_from_container_accepts_h5py_group() -> None:
 
         mesh = Mesh.from_container(cast("Any", mesh_group))
 
-    assert mesh.nodes.coord.shape == (4, DIM)
+    assert mesh.nodes.coordinates.shape == (4, DIM)
     assert len(mesh.elements) == 1
     assert mesh.elements[0].topology is Topology.C3D4
 
@@ -310,7 +310,7 @@ def test_mesh_from_container_rejects_unknown_node_references() -> None:
         )
 
 
-def test_mesh_from_container_rejects_duplicate_element_ids() -> None:
+def test_mesh_from_container_rejects_duplicate_element_numbers() -> None:
     c3d4 = _c3d4_container()
     c3d5 = _c3d5_container()
     c3d5["numbers"] = [10]

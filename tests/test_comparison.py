@@ -9,24 +9,30 @@ from proface.core.mesh import DIM, Elements, Mesh, Nodes, Topology
 
 def test_nodes_compare_by_array_values() -> None:
     nodes = Nodes(
-        ids=np.array([1, 2], dtype=np.uint64),
-        coord=np.array([[0, 0, 0], [1, 0, 0]], dtype=np.float64),
+        numbers=np.array([1, 2], dtype=np.uint64),
+        coordinates=np.array([[0, 0, 0], [1, 0, 0]], dtype=np.float64),
     )
-    same = Nodes(ids=[1, 2], coord=[[0, 0, 0], [1, 0, 0]])
-    different_ids = Nodes(ids=[1, 3], coord=[[0, 0, 0], [1, 0, 0]])
-    different_coord = Nodes(ids=[1, 2], coord=[[0, 0, 0], [2, 0, 0]])
+    same = Nodes(numbers=[1, 2], coordinates=[[0, 0, 0], [1, 0, 0]])
+    different_numbers = Nodes(
+        numbers=[1, 3],
+        coordinates=[[0, 0, 0], [1, 0, 0]],
+    )
+    different_coordinates = Nodes(
+        numbers=[1, 2],
+        coordinates=[[0, 0, 0], [2, 0, 0]],
+    )
 
     assert nodes == same
     assert same == nodes
-    assert nodes != different_ids
-    assert nodes != different_coord
+    assert nodes != different_numbers
+    assert nodes != different_coordinates
     assert nodes != object()
 
 
 def test_elements_compare_by_topology_and_array_values() -> None:
     elements = Elements(
         topology=Topology.C3D4,
-        ids=np.array([10, 11], dtype=np.uint64),
+        numbers=np.array([10, 11], dtype=np.uint64),
         incidences=np.array(
             [[1, 2, 3, 4], [2, 3, 4, 5]],
             dtype=np.uint64,
@@ -34,28 +40,28 @@ def test_elements_compare_by_topology_and_array_values() -> None:
     )
     same = Elements(
         topology=Topology.C3D4,
-        ids=[10, 11],
+        numbers=[10, 11],
         incidences=[[1, 2, 3, 4], [2, 3, 4, 5]],
     )
-    different_ids = Elements(
+    different_numbers = Elements(
         topology=Topology.C3D4,
-        ids=[10, 12],
+        numbers=[10, 12],
         incidences=[[1, 2, 3, 4], [2, 3, 4, 5]],
     )
     different_incidences = Elements(
         topology=Topology.C3D4,
-        ids=[10, 11],
+        numbers=[10, 11],
         incidences=[[1, 2, 3, 4], [2, 3, 4, 6]],
     )
     different_topology = Elements(
         topology=Topology.C3D5,
-        ids=[10],
+        numbers=[10],
         incidences=[[1, 2, 3, 4, 5]],
     )
 
     assert elements == same
     assert same == elements
-    assert elements != different_ids
+    assert elements != different_numbers
     assert elements != different_incidences
     assert elements != different_topology
     assert elements != object()
@@ -63,30 +69,30 @@ def test_elements_compare_by_topology_and_array_values() -> None:
 
 def test_mesh_compare_by_nested_container_values() -> None:
     mesh = Mesh(
-        nodes=Nodes(ids=[1, 2, 3, 4, 5], coord=np.zeros((5, DIM))),
+        nodes=Nodes(numbers=[1, 2, 3, 4, 5], coordinates=np.zeros((5, DIM))),
         elements=(
             Elements(
                 topology=Topology.C3D4,
-                ids=[10],
+                numbers=[10],
                 incidences=[[1, 2, 3, 4]],
             ),
         ),
     )
     same = Mesh(
         nodes=Nodes(
-            ids=np.array([1, 2, 3, 4, 5], dtype=np.uint64),
-            coord=np.zeros((5, DIM), dtype=np.float64),
+            numbers=np.array([1, 2, 3, 4, 5], dtype=np.uint64),
+            coordinates=np.zeros((5, DIM), dtype=np.float64),
         ),
         elements=(
             Elements(
                 topology=Topology.C3D4,
-                ids=np.array([10], dtype=np.uint64),
+                numbers=np.array([10], dtype=np.uint64),
                 incidences=np.array([[1, 2, 3, 4]], dtype=np.uint64),
             ),
         ),
     )
     different_nodes = Mesh(
-        nodes=Nodes(ids=[1, 2, 3, 4, 5], coord=np.ones((5, DIM))),
+        nodes=Nodes(numbers=[1, 2, 3, 4, 5], coordinates=np.ones((5, DIM))),
         elements=mesh.elements,
     )
     different_elements = Mesh(
@@ -94,7 +100,7 @@ def test_mesh_compare_by_nested_container_values() -> None:
         elements=(
             Elements(
                 topology=Topology.C3D4,
-                ids=[11],
+                numbers=[11],
                 incidences=[[1, 2, 3, 4]],
             ),
         ),
