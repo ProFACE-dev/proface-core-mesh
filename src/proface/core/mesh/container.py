@@ -82,12 +82,19 @@ def _check_ids(
         raise ValueError(msg)
 
 
+_cmp_numpy = attrs.cmp_using(eq=np.array_equal)
+
+
 @attrs.frozen
 class Nodes:
     """container for mesh nodes: numbers (aka labels) and coordinates"""
 
-    ids: IDS_1D = attrs.field(converter=_to_ids, validator=[_check_ids])
-    coord: COORD = attrs.field(converter=_to_coord)
+    ids: IDS_1D = attrs.field(
+        converter=_to_ids,
+        validator=[_check_ids],
+        eq=_cmp_numpy,
+    )
+    coord: COORD = attrs.field(converter=_to_coord, eq=_cmp_numpy)
 
     @coord.validator
     def check_coord(
@@ -113,8 +120,12 @@ class Elements:
     """container for same topology elements"""
 
     topology: Topology
-    ids: IDS_1D = attrs.field(converter=_to_ids, validator=[_check_ids])
-    incidences: IDS_2D = attrs.field(converter=_to_ids)
+    ids: IDS_1D = attrs.field(
+        converter=_to_ids,
+        validator=[_check_ids],
+        eq=_cmp_numpy,
+    )
+    incidences: IDS_2D = attrs.field(converter=_to_ids, eq=_cmp_numpy)
 
     @incidences.validator
     def check_incidences(
