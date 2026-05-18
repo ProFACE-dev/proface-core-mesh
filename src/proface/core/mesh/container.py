@@ -102,7 +102,7 @@ class Nodes(_Numbered):
     )
 
     @coordinates.validator
-    def check_coordinates(
+    def _check_coordinates(
         self, _attribute: object, value: npt.NDArray[MESH_COORDINATES]
     ) -> None:
         if value.shape != (len(self.numbers), DIM):
@@ -132,7 +132,7 @@ class Elements(_Numbered):
     incidences: IDS_2D = attrs.field(converter=_to_numbers, eq=_cmp_numpy)
 
     @incidences.validator
-    def check_incidences(
+    def _check_incidences(
         self, _attribute: object, value: npt.NDArray[MESH_IDS]
     ) -> None:
         if value.ndim != 2:  # noqa: PLR2004
@@ -178,7 +178,7 @@ class Mesh:
     elements: tuple[Elements, ...] = attrs.field()
 
     @elements.validator
-    def check_elements(
+    def _check_elements(
         self, _attribute: object, value: tuple[Elements, ...]
     ) -> None:
         if not value:
