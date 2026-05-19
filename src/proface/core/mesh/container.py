@@ -5,7 +5,7 @@
 
 import enum
 import functools
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 import attrs
@@ -68,6 +68,10 @@ def _to_numbers(val: npt.ArrayLike) -> npt.NDArray[MESH_IDS]:
 
 def _to_coordinates(val: npt.ArrayLike) -> npt.NDArray[MESH_COORDINATES]:
     return np.asarray(val, dtype=MESH_COORDINATES)
+
+
+def _to_elements_tuple(val: Iterable["Elements"]) -> tuple["Elements", ...]:
+    return tuple(val)
 
 
 _cmp_numpy = attrs.cmp_using(eq=np.array_equal)
@@ -183,17 +187,23 @@ class Mesh:
     """container for mesh data"""
 
     nodes: Nodes
-    elements: tuple[Elements, ...] = attrs.field()
+    elements: tuple[Elements, ...] = attrs.field(converter=_to_elements_tuple)
 
     @elements.validator
     def _check_elements(
         self, _attribute: object, value: tuple[Elements, ...]
     ) -> None:
+
+        # empty tuple is valid
         if not value:
             return
 
+        # validate tuple elements
         topologies = []
         for g in value:
+            if not isinstance(g, Elements):
+                msg = f"Not an Elements isinstance: {g}"
+                raise TypeError(msg)
             if g.topology in topologies:
                 msg = f"Repeated topology: {g.topology.name}"
                 raise ValueError(msg)

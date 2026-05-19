@@ -192,6 +192,18 @@ def test_mesh_direct_initialization_accepts_empty_elements() -> None:
     assert mesh.elements == ()
 
 
+def test_mesh_direct_initialization_converts_elements_to_tuple() -> None:
+    nodes = Nodes(numbers=[1, 2, 3, 4], coordinates=np.zeros((4, DIM)))
+    elements = Elements(
+        numbers=[10],
+        incidences=[[1, 2, 3, 4]],
+    )
+
+    mesh = Mesh(nodes=nodes, elements=[elements])
+
+    assert mesh.elements == (elements,)
+
+
 def test_mesh_elements_dict_indexes_elements_by_topology() -> None:
     nodes = Nodes(numbers=[1, 2, 3, 4, 5], coordinates=np.zeros((5, DIM)))
     c3d4 = Elements(
@@ -227,6 +239,13 @@ def test_mesh_direct_initialization_rejects_positional_arguments() -> None:
 
     with pytest.raises(TypeError, match="positional"):
         cast("Any", Mesh)(nodes, ())
+
+
+def test_mesh_direct_initialization_rejects_non_elements() -> None:
+    nodes = Nodes(numbers=[1], coordinates=[[0, 0, 0]])
+
+    with pytest.raises(TypeError, match="Not an Elements isinstance"):
+        Mesh(nodes=nodes, elements=cast("Any", (object(),)))
 
 
 def test_mesh_direct_initialization_rejects_unknown_node_references() -> None:
