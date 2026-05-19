@@ -180,7 +180,7 @@ def test_elements_from_container_rejects_incidences_shape() -> None:
 
 
 def test_elements_from_container_rejects_unsupported_topology() -> None:
-    with pytest.raises(ValueError, match="3 is not a valid Topology"):
+    with pytest.raises(ValueError, match="Unknown element topology"):
         Elements.from_container(
             {"numbers": [10], "incidences": [[1, 2, 3]], "nodes": [1, 2, 3]},
         )

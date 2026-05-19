@@ -134,7 +134,6 @@ class Nodes(_Numbered):
 class Elements(_Numbered):
     """container for same topology elements"""
 
-    topology: Topology
     incidences: IDS_2D = attrs.field(converter=_to_numbers, eq=_cmp_numpy)
 
     @incidences.validator
@@ -147,9 +146,13 @@ class Elements(_Numbered):
         if len(value) != len(self.numbers):
             msg = "Element numbers and incidences must have the same length"
             raise ValueError(msg)
-        if value.shape[1] != self.topology.value:
-            msg = "Element incidences do not match topology"
+        if value.shape[1] not in Topology:
+            msg = "Unknown element topology"
             raise ValueError(msg)
+
+    @property
+    def topology(self) -> Topology:
+        return Topology(self.incidences.shape[1])
 
     @functools.cached_property
     def nodes(self) -> IDS_1D:
@@ -162,11 +165,7 @@ class Elements(_Numbered):
             raise TypeError(msg)
         numbers = _array(container, "numbers", dtype=MESH_IDS)
         incidences = _array(container, "incidences", dtype=MESH_IDS)
-        if incidences.ndim != 2:  # noqa: PLR2004
-            msg = "Element incidences must be 2-dimensional"
-            raise ValueError(msg)
-        topology = Topology(incidences.shape[1])
-        els = cls(topology=topology, numbers=numbers, incidences=incidences)
+        els = cls(numbers=numbers, incidences=incidences)
 
         nodes = _array(container, "nodes", dtype=MESH_IDS)
         if not np.array_equal(nodes, els.nodes):

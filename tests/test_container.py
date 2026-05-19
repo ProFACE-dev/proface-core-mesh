@@ -71,7 +71,6 @@ def test_nodes_direct_initialization_rejects_bad_coordinates_shape() -> None:
 
 def test_elements_direct_initialization_converts_valid_inputs() -> None:
     elements = Elements(
-        topology=Topology.C3D4,
         numbers=[10, 11],
         incidences=[[1, 2, 3, 4], [2, 3, 4, 5]],
     )
@@ -89,7 +88,6 @@ def test_elements_direct_initialization_converts_valid_inputs() -> None:
 
 def test_elements_direct_initialization_accepts_empty_elements() -> None:
     elements = Elements(
-        topology=Topology.C3D4,
         numbers=(),
         incidences=np.array(()).reshape((0, Topology.C3D4.value)),
     )
@@ -103,7 +101,6 @@ def test_elements_direct_initialization_accepts_empty_elements() -> None:
 def test_elements_direct_initialization_supports_len() -> None:
     numbers = [10, 11]
     elements = Elements(
-        topology=Topology.C3D4,
         numbers=numbers,
         incidences=[[1, 2, 3, 4], [2, 3, 4, 5]],
     )
@@ -113,7 +110,6 @@ def test_elements_direct_initialization_supports_len() -> None:
 
 def test_elements_direct_initialization_supports_str() -> None:
     elements = Elements(
-        topology=Topology.C3D4,
         numbers=[10],
         incidences=[[1, 2, 3, 4]],
     )
@@ -123,7 +119,7 @@ def test_elements_direct_initialization_supports_str() -> None:
 
 def test_elements_direct_initialization_rejects_positional_arguments() -> None:
     with pytest.raises(TypeError, match="positional"):
-        cast("Any", Elements)(Topology.C3D4, [10], [[1, 2, 3, 4]])
+        cast("Any", Elements)([10], [[1, 2, 3, 4]])
 
 
 def test_elements_direct_initialization_rejects_invalid_numbers_shape() -> None:
@@ -131,7 +127,6 @@ def test_elements_direct_initialization_rejects_invalid_numbers_shape() -> None:
         ValueError, match=r"Elements\.numbers must be 1-dimensional"
     ):
         Elements(
-            topology=Topology.C3D4,
             numbers=[[10, 11]],
             incidences=[[1, 2, 3, 4]],
         )
@@ -140,7 +135,6 @@ def test_elements_direct_initialization_rejects_invalid_numbers_shape() -> None:
 def test_elements_direct_initialization_rejects_duplicate_numbers() -> None:
     with pytest.raises(ValueError, match=r"Elements\.numbers must be unique"):
         Elements(
-            topology=Topology.C3D4,
             numbers=[10, 10],
             incidences=[[1, 2, 3, 4], [2, 3, 4, 5]],
         )
@@ -150,7 +144,6 @@ def test_elements_direct_initialization_rejects_incidences_shape() -> None:
     match = "Element incidences must be 2-dimensional"
     with pytest.raises(ValueError, match=match):
         Elements(
-            topology=Topology.C3D4,
             numbers=[10],
             incidences=[1, 2, 3, 4],
         )
@@ -160,33 +153,26 @@ def test_elements_direct_initialization_rejects_length_mismatch() -> None:
     match = "Element numbers and incidences must have the same length"
     with pytest.raises(ValueError, match=match):
         Elements(
-            topology=Topology.C3D4,
             numbers=[10, 11],
             incidences=[[1, 2, 3, 4]],
         )
 
 
-def test_elements_direct_initialization_rejects_topology_mismatch() -> None:
-    with pytest.raises(
-        ValueError,
-        match="Element incidences do not match topology",
-    ):
+def test_elements_direct_initialization_rejects_unsupported_topology() -> None:
+    with pytest.raises(ValueError, match="Unknown element topology"):
         Elements(
-            topology=Topology.C3D5,
             numbers=[10],
-            incidences=[[1, 2, 3, 4]],
+            incidences=[[1, 2, 3]],
         )
 
 
 def test_mesh_direct_initialization_accepts_valid_elements() -> None:
     nodes = Nodes(numbers=[1, 2, 3, 4, 5], coordinates=np.zeros((5, DIM)))
     c3d4 = Elements(
-        topology=Topology.C3D4,
         numbers=[10],
         incidences=[[1, 2, 3, 4]],
     )
     c3d5 = Elements(
-        topology=Topology.C3D5,
         numbers=[20],
         incidences=[[1, 2, 3, 4, 5]],
     )
@@ -209,12 +195,10 @@ def test_mesh_direct_initialization_accepts_empty_elements() -> None:
 def test_mesh_elements_dict_indexes_elements_by_topology() -> None:
     nodes = Nodes(numbers=[1, 2, 3, 4, 5], coordinates=np.zeros((5, DIM)))
     c3d4 = Elements(
-        topology=Topology.C3D4,
         numbers=[10],
         incidences=[[1, 2, 3, 4]],
     )
     c3d5 = Elements(
-        topology=Topology.C3D5,
         numbers=[20],
         incidences=[[1, 2, 3, 4, 5]],
     )
@@ -230,7 +214,6 @@ def test_mesh_elements_dict_indexes_elements_by_topology() -> None:
 def test_mesh_direct_initialization_supports_str() -> None:
     nodes = Nodes(numbers=[1, 2, 3, 4], coordinates=np.zeros((4, DIM)))
     elements = Elements(
-        topology=Topology.C3D4,
         numbers=[10],
         incidences=[[1, 2, 3, 4]],
     )
@@ -249,7 +232,6 @@ def test_mesh_direct_initialization_rejects_positional_arguments() -> None:
 def test_mesh_direct_initialization_rejects_unknown_node_references() -> None:
     nodes = Nodes(numbers=[1, 2, 3], coordinates=np.zeros((3, DIM)))
     elements = Elements(
-        topology=Topology.C3D4,
         numbers=[10],
         incidences=[[1, 2, 3, 4]],
     )
@@ -262,12 +244,10 @@ def test_mesh_direct_initialization_rejects_unknown_node_references() -> None:
 def test_mesh_direct_initialization_rejects_repeated_topologies() -> None:
     nodes = Nodes(numbers=[1, 2, 3, 4, 5], coordinates=np.zeros((5, DIM)))
     first = Elements(
-        topology=Topology.C3D4,
         numbers=[10],
         incidences=[[1, 2, 3, 4]],
     )
     second = Elements(
-        topology=Topology.C3D4,
         numbers=[11],
         incidences=[[2, 3, 4, 5]],
     )
@@ -279,12 +259,10 @@ def test_mesh_direct_initialization_rejects_repeated_topologies() -> None:
 def test_mesh_direct_initialization_rejects_duplicate_element_numbers() -> None:
     nodes = Nodes(numbers=[1, 2, 3, 4, 5], coordinates=np.zeros((5, DIM)))
     c3d4 = Elements(
-        topology=Topology.C3D4,
         numbers=[10],
         incidences=[[1, 2, 3, 4]],
     )
     c3d5 = Elements(
-        topology=Topology.C3D5,
         numbers=[10],
         incidences=[[1, 2, 3, 4, 5]],
     )

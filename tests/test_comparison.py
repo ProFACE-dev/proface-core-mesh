@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from proface.core.mesh import DIM, Elements, Mesh, Nodes, Topology
+from proface.core.mesh import DIM, Elements, Mesh, Nodes
 
 
 def test_nodes_compare_by_array_values() -> None:
@@ -31,7 +31,6 @@ def test_nodes_compare_by_array_values() -> None:
 
 def test_elements_compare_by_topology_and_array_values() -> None:
     elements = Elements(
-        topology=Topology.C3D4,
         numbers=np.array([10, 11], dtype=np.uint64),
         incidences=np.array(
             [[1, 2, 3, 4], [2, 3, 4, 5]],
@@ -39,22 +38,18 @@ def test_elements_compare_by_topology_and_array_values() -> None:
         ),
     )
     same = Elements(
-        topology=Topology.C3D4,
         numbers=[10, 11],
         incidences=[[1, 2, 3, 4], [2, 3, 4, 5]],
     )
     different_numbers = Elements(
-        topology=Topology.C3D4,
         numbers=[10, 12],
         incidences=[[1, 2, 3, 4], [2, 3, 4, 5]],
     )
     different_incidences = Elements(
-        topology=Topology.C3D4,
         numbers=[10, 11],
         incidences=[[1, 2, 3, 4], [2, 3, 4, 6]],
     )
     different_topology = Elements(
-        topology=Topology.C3D5,
         numbers=[10],
         incidences=[[1, 2, 3, 4, 5]],
     )
@@ -72,7 +67,6 @@ def test_mesh_compare_by_nested_container_values() -> None:
         nodes=Nodes(numbers=[1, 2, 3, 4, 5], coordinates=np.zeros((5, DIM))),
         elements=(
             Elements(
-                topology=Topology.C3D4,
                 numbers=[10],
                 incidences=[[1, 2, 3, 4]],
             ),
@@ -85,7 +79,6 @@ def test_mesh_compare_by_nested_container_values() -> None:
         ),
         elements=(
             Elements(
-                topology=Topology.C3D4,
                 numbers=np.array([10], dtype=np.uint64),
                 incidences=np.array([[1, 2, 3, 4]], dtype=np.uint64),
             ),
@@ -99,7 +92,6 @@ def test_mesh_compare_by_nested_container_values() -> None:
         nodes=mesh.nodes,
         elements=(
             Elements(
-                topology=Topology.C3D4,
                 numbers=[11],
                 incidences=[[1, 2, 3, 4]],
             ),
