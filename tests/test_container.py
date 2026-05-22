@@ -59,8 +59,19 @@ def test_nodes_direct_initialization_rejects_invalid_numbers_shape() -> None:
 
 
 def test_nodes_direct_initialization_rejects_duplicate_numbers() -> None:
-    with pytest.raises(ValueError, match=r"Nodes\.numbers must be unique"):
+    with pytest.raises(
+        ValueError,
+        match=r"Nodes\.numbers must be strongly sorted",
+    ):
         Nodes(numbers=[1, 1], coordinates=[[0, 0, 0], [1, 0, 0]])
+
+
+def test_nodes_direct_initialization_rejects_unsorted_numbers() -> None:
+    with pytest.raises(
+        ValueError,
+        match=r"Nodes\.numbers must be strongly sorted",
+    ):
+        Nodes(numbers=[2, 1], coordinates=[[1, 0, 0], [0, 0, 0]])
 
 
 def test_nodes_direct_initialization_rejects_bad_coordinates_shape() -> None:
@@ -133,11 +144,23 @@ def test_elements_direct_initialization_rejects_invalid_numbers_shape() -> None:
 
 
 def test_elements_direct_initialization_rejects_duplicate_numbers() -> None:
-    with pytest.raises(ValueError, match=r"Elements\.numbers must be unique"):
+    with pytest.raises(
+        ValueError,
+        match=r"Elements\.numbers must be unique",
+    ):
         Elements(
             numbers=[10, 10],
             incidences=[[1, 2, 3, 4], [2, 3, 4, 5]],
         )
+
+
+def test_elements_direct_initialization_accepts_unsorted_numbers() -> None:
+    elements = Elements(
+        numbers=[11, 10],
+        incidences=[[2, 3, 4, 5], [1, 2, 3, 4]],
+    )
+
+    np.testing.assert_array_equal(elements.numbers, [11, 10])
 
 
 def test_elements_direct_initialization_rejects_incidences_shape() -> None:

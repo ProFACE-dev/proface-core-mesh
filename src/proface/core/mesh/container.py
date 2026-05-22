@@ -77,32 +77,37 @@ def _to_elements_tuple(val: Iterable["Elements"]) -> tuple["Elements", ...]:
 _cmp_numpy = attrs.cmp_using(eq=np.array_equal)
 
 
+def _check_sorted(
+    instance: object, _attribute: object, value: npt.NDArray[MESH_IDS]
+) -> None:
+    name = instance.__class__.__name__
+    if value.ndim != 1:
+        msg = f"{name}.numbers must be 1-dimensional"
+        raise ValueError(msg)
+    if np.any(value[:-1] >= value[1:]):
+        msg = f"{name}.numbers must be strongly sorted (no duplicates)"
+        raise ValueError(msg)
+
+
+def _check_unique(
+    instance: object, _attribute: object, value: npt.NDArray[MESH_IDS]
+) -> None:
+    name = instance.__class__.__name__
+    if value.ndim != 1:
+        msg = f"{name}.numbers must be 1-dimensional"
+        raise ValueError(msg)
+    if len(np.unique_values(value)) != len(value):
+        msg = f"{name}.numbers must be unique"
+        raise ValueError(msg)
+
+
 @attrs.frozen(kw_only=True)
-class _Numbered:
-    """container for numbered entities"""
-
-    numbers: IDS_1D = attrs.field(converter=_to_numbers, eq=_cmp_numpy)
-
-    @numbers.validator
-    def _check_numbers(
-        self, _attribute: object, value: npt.NDArray[MESH_IDS]
-    ) -> None:
-        name = self.__class__.__name__
-        if value.ndim != 1:
-            msg = f"{name}.numbers must be 1-dimensional"
-            raise ValueError(msg)
-        if len(np.unique_values(value)) != len(value):
-            msg = f"{name}.numbers must be unique"
-            raise ValueError(msg)
-
-    def __len__(self) -> int:
-        return len(self.numbers)
-
-
-@attrs.frozen(kw_only=True)
-class Nodes(_Numbered):
+class Nodes:
     """container for mesh nodes: numbers (aka labels) and coordinates"""
 
+    numbers: IDS_1D = attrs.field(
+        converter=_to_numbers, eq=_cmp_numpy, validator=_check_sorted
+    )
     coordinates: COORDINATES = attrs.field(
         converter=_to_coordinates,
         eq=_cmp_numpy,
@@ -130,14 +135,20 @@ class Nodes(_Numbered):
             ),
         )
 
+    def __len__(self) -> int:
+        return len(self.numbers)
+
     def __str__(self) -> str:
         return f"Nodes ({len(self):_d})"
 
 
 @attrs.frozen(kw_only=True)
-class Elements(_Numbered):
+class Elements:
     """container for same topology elements"""
 
+    numbers: IDS_1D = attrs.field(
+        converter=_to_numbers, eq=_cmp_numpy, validator=_check_unique
+    )
     incidences: IDS_2D = attrs.field(converter=_to_numbers, eq=_cmp_numpy)
 
     @incidences.validator
@@ -177,6 +188,9 @@ class Elements(_Numbered):
             raise ValueError(msg)
 
         return els
+
+    def __len__(self) -> int:
+        return len(self.numbers)
 
     def __str__(self) -> str:
         return f"Elements ({len(self):_d} {self.topology.name})"
