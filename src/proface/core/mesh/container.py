@@ -8,7 +8,7 @@ from __future__ import annotations
 import enum
 import functools
 from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import Any, overload
 
 import attrs
 import numpy as np
@@ -72,7 +72,15 @@ def _to_coordinates(val: npt.ArrayLike) -> npt.NDArray[MESH_COORDINATES]:
     return np.asarray(val, dtype=MESH_COORDINATES)
 
 
-def _to_elements_tuple(val: Iterable[Elements]) -> tuple[Elements, ...]:
+@overload
+def _to_tuple(val: Iterable[Elements]) -> tuple[Elements, ...]: ...
+
+
+@overload
+def _to_tuple(val: Iterable[Set]) -> tuple[Set, ...]: ...
+
+
+def _to_tuple[T](val: Iterable[T]) -> tuple[T, ...]:
     return tuple(val)
 
 
@@ -220,11 +228,28 @@ class Elements:
 
 
 @attrs.frozen(kw_only=True)
+class Set:
+    """container for named sets"""
+
+    name: str
+    members: IDS_1D = attrs.field(
+        converter=_to_numbers,
+        eq=_cmp_numpy,
+        validator=[_CheckNDIM(1), _check_sorted],
+    )
+
+    def __len__(self) -> int:
+        return len(self.members)
+
+
+@attrs.frozen(kw_only=True)
 class Mesh:
     """container for mesh data"""
 
     nodes: Nodes
-    elements: tuple[Elements, ...] = attrs.field(converter=_to_elements_tuple)
+    elements: tuple[Elements, ...] = attrs.field(converter=_to_tuple)
+    sets_element: tuple[Set, ...] = attrs.field(default=(), converter=_to_tuple)
+    sets_node: tuple[Set, ...] = attrs.field(default=(), converter=_to_tuple)
 
     @elements.validator
     def _check_elements(
@@ -268,7 +293,22 @@ class Mesh:
             for g in _group(container, "elements").values()
         )
 
-        return cls(nodes=nodes, elements=elements)
+        g = _group(container, "sets/element")
+        sets_element = tuple(
+            Set(name=k, members=_array(g, k, dtype=MESH_IDS)) for k in g
+        )
+
+        g = _group(container, "sets/node")
+        sets_node = tuple(
+            Set(name=k, members=_array(g, k, dtype=MESH_IDS)) for k in g
+        )
+
+        return cls(
+            nodes=nodes,
+            elements=elements,
+            sets_element=sets_element,
+            sets_node=sets_node,
+        )
 
     def __str__(self) -> str:
         return f"Mesh: {self.nodes}; {', '.join(str(g) for g in self.elements)}"
