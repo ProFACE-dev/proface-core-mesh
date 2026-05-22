@@ -287,17 +287,16 @@ class Mesh:
         if not isinstance(container, Mapping):
             msg = f"Argument '{container!r}' is not a Mapping"
             raise TypeError(msg)
+
         nodes = Nodes.from_container(_group(container, "nodes"))
         elements = tuple(
             Elements.from_container(g)
             for g in _group(container, "elements").values()
         )
-
         g = _group(container, "sets/element")
         sets_element = tuple(
             Set(name=k, members=_array(g, k, dtype=MESH_IDS)) for k in g
         )
-
         g = _group(container, "sets/node")
         sets_node = tuple(
             Set(name=k, members=_array(g, k, dtype=MESH_IDS)) for k in g
