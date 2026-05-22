@@ -129,6 +129,58 @@ def _check_unique(
         raise ValueError(msg)
 
 
+def _check_coordinates(
+    instance: Nodes,
+    _attribute: attrs.Attribute[COORDINATES],
+    value: npt.NDArray[MESH_COORDINATES],
+) -> None:
+    if value.shape != (len(instance.numbers), DIM):
+        msg = "Node coordinates must have shape (number of nodes, DIM)"
+        raise ValueError(msg)
+
+
+def _check_incidences(
+    instance: Elements,
+    _attribute: attrs.Attribute[IDS_2D],
+    value: npt.NDArray[MESH_IDS],
+) -> None:
+    if len(value) != len(instance.numbers):
+        msg = "Element numbers and incidences must have the same length"
+        raise ValueError(msg)
+    if value.shape[1] not in Topology:
+        msg = "Unknown element topology"
+        raise ValueError(msg)
+
+
+def _check_mesh_elements(
+    instance: Mesh,
+    _attribute: attrs.Attribute[tuple[Elements, ...]],
+    value: tuple[Elements, ...],
+) -> None:
+
+    # empty tuple is valid
+    if not value:
+        return
+
+    # validate tuple elements
+    topologies = []
+    for g in value:
+        if not isinstance(g, Elements):
+            msg = f"Not an Elements isinstance: {g}"
+            raise TypeError(msg)
+        if g.topology in topologies:
+            msg = f"Repeated topology: {g.topology.name}"
+            raise ValueError(msg)
+        topologies.append(g.topology)
+        if not np.isin(g.incidences, instance.nodes.numbers).all():
+            msg = f"Elements ({g.topology.name}) reference unknown nodes"
+            raise ValueError(msg)
+    numbers = np.concat([g.numbers for g in value])
+    if len(np.unique_values(numbers)) != len(numbers):
+        msg = "Element numbers are not unique"
+        raise ValueError(msg)
+
+
 @attrs.frozen(kw_only=True)
 class Nodes:
     """container for mesh nodes: numbers (aka labels) and coordinates"""
@@ -141,15 +193,8 @@ class Nodes:
     coordinates: COORDINATES = attrs.field(
         converter=_to_coordinates,
         eq=_cmp_numpy,
+        validator=_check_coordinates,
     )
-
-    @coordinates.validator
-    def _check_coordinates(
-        self, _attribute: object, value: npt.NDArray[MESH_COORDINATES]
-    ) -> None:
-        if value.shape != (len(self.numbers), DIM):
-            msg = "Node coordinates must have shape (number of nodes, DIM)"
-            raise ValueError(msg)
 
     @classmethod
     def from_container(cls, container: Group) -> Nodes:
@@ -182,19 +227,10 @@ class Elements:
         validator=[_CheckNDIM(1), _check_unique],
     )
     incidences: IDS_2D = attrs.field(
-        converter=_to_numbers, eq=_cmp_numpy, validator=_CheckNDIM(2)
+        converter=_to_numbers,
+        eq=_cmp_numpy,
+        validator=[_CheckNDIM(2), _check_incidences],
     )
-
-    @incidences.validator
-    def _check_incidences(
-        self, _attribute: object, value: npt.NDArray[MESH_IDS]
-    ) -> None:
-        if len(value) != len(self.numbers):
-            msg = "Element numbers and incidences must have the same length"
-            raise ValueError(msg)
-        if value.shape[1] not in Topology:
-            msg = "Unknown element topology"
-            raise ValueError(msg)
 
     @property
     def topology(self) -> Topology:
@@ -247,36 +283,12 @@ class Mesh:
     """container for mesh data"""
 
     nodes: Nodes
-    elements: tuple[Elements, ...] = attrs.field(converter=_to_tuple)
+    elements: tuple[Elements, ...] = attrs.field(
+        converter=_to_tuple,
+        validator=_check_mesh_elements,
+    )
     sets_element: tuple[Set, ...] = attrs.field(default=(), converter=_to_tuple)
     sets_node: tuple[Set, ...] = attrs.field(default=(), converter=_to_tuple)
-
-    @elements.validator
-    def _check_elements(
-        self, _attribute: object, value: tuple[Elements, ...]
-    ) -> None:
-
-        # empty tuple is valid
-        if not value:
-            return
-
-        # validate tuple elements
-        topologies = []
-        for g in value:
-            if not isinstance(g, Elements):
-                msg = f"Not an Elements isinstance: {g}"
-                raise TypeError(msg)
-            if g.topology in topologies:
-                msg = f"Repeated topology: {g.topology.name}"
-                raise ValueError(msg)
-            topologies.append(g.topology)
-            if not np.isin(g.incidences, self.nodes.numbers).all():
-                msg = f"Elements ({g.topology.name}) reference unknown nodes"
-                raise ValueError(msg)
-        numbers = np.concat([g.numbers for g in value])
-        if len(np.unique_values(numbers)) != len(numbers):
-            msg = "Element numbers are not unique"
-            raise ValueError(msg)
 
     @property
     def elements_dict(self) -> dict[Topology, Elements]:
