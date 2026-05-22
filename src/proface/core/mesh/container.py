@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
 import enum
 import functools
 from collections.abc import Iterable, Mapping
@@ -70,34 +72,52 @@ def _to_coordinates(val: npt.ArrayLike) -> npt.NDArray[MESH_COORDINATES]:
     return np.asarray(val, dtype=MESH_COORDINATES)
 
 
-def _to_elements_tuple(val: Iterable["Elements"]) -> tuple["Elements", ...]:
+def _to_elements_tuple(val: Iterable[Elements]) -> tuple[Elements, ...]:
     return tuple(val)
 
 
 _cmp_numpy = attrs.cmp_using(eq=np.array_equal)
 
 
+def _attribute_name(instance: object, attribute: attrs.Attribute[Any]) -> str:
+    return f"{instance.__class__.__name__}.{attribute.name}"
+
+
+class _CheckNDIM:
+    def __init__(self, ndim: int) -> None:
+        self.ndim = ndim
+
+    def __call__(
+        self,
+        instance: object,
+        attribute: attrs.Attribute[npt.NDArray[MESH_IDS]],
+        value: npt.NDArray[MESH_IDS],
+    ) -> None:
+        name = _attribute_name(instance, attribute)
+        if value.ndim != self.ndim:
+            msg = f"{name} must be {self.ndim}-dimensional"
+            raise ValueError(msg)
+
+
 def _check_sorted(
-    instance: object, _attribute: object, value: npt.NDArray[MESH_IDS]
+    instance: object,
+    attribute: attrs.Attribute[npt.NDArray[MESH_IDS]],
+    value: npt.NDArray[MESH_IDS],
 ) -> None:
-    name = instance.__class__.__name__
-    if value.ndim != 1:
-        msg = f"{name}.numbers must be 1-dimensional"
-        raise ValueError(msg)
+    name = _attribute_name(instance, attribute)
     if np.any(value[:-1] >= value[1:]):
-        msg = f"{name}.numbers must be strongly sorted (no duplicates)"
+        msg = f"{name} must be strongly sorted (no duplicates)"
         raise ValueError(msg)
 
 
 def _check_unique(
-    instance: object, _attribute: object, value: npt.NDArray[MESH_IDS]
+    instance: object,
+    attribute: attrs.Attribute[npt.NDArray[MESH_IDS]],
+    value: npt.NDArray[MESH_IDS],
 ) -> None:
-    name = instance.__class__.__name__
-    if value.ndim != 1:
-        msg = f"{name}.numbers must be 1-dimensional"
-        raise ValueError(msg)
+    name = _attribute_name(instance, attribute)
     if len(np.unique_values(value)) != len(value):
-        msg = f"{name}.numbers must be unique"
+        msg = f"{name} must be unique"
         raise ValueError(msg)
 
 
@@ -106,7 +126,9 @@ class Nodes:
     """container for mesh nodes: numbers (aka labels) and coordinates"""
 
     numbers: IDS_1D = attrs.field(
-        converter=_to_numbers, eq=_cmp_numpy, validator=_check_sorted
+        converter=_to_numbers,
+        eq=_cmp_numpy,
+        validator=[_CheckNDIM(1), _check_sorted],
     )
     coordinates: COORDINATES = attrs.field(
         converter=_to_coordinates,
@@ -122,7 +144,7 @@ class Nodes:
             raise ValueError(msg)
 
     @classmethod
-    def from_container(cls, container: Group) -> "Nodes":
+    def from_container(cls, container: Group) -> Nodes:
         if not isinstance(container, Mapping):
             msg = f"Argument '{container!r}' is not a Mapping"
             raise TypeError(msg)
@@ -147,17 +169,18 @@ class Elements:
     """container for same topology elements"""
 
     numbers: IDS_1D = attrs.field(
-        converter=_to_numbers, eq=_cmp_numpy, validator=_check_unique
+        converter=_to_numbers,
+        eq=_cmp_numpy,
+        validator=[_CheckNDIM(1), _check_unique],
     )
-    incidences: IDS_2D = attrs.field(converter=_to_numbers, eq=_cmp_numpy)
+    incidences: IDS_2D = attrs.field(
+        converter=_to_numbers, eq=_cmp_numpy, validator=_CheckNDIM(2)
+    )
 
     @incidences.validator
     def _check_incidences(
         self, _attribute: object, value: npt.NDArray[MESH_IDS]
     ) -> None:
-        if value.ndim != 2:  # noqa: PLR2004
-            msg = "Element incidences must be 2-dimensional"
-            raise ValueError(msg)
         if len(value) != len(self.numbers):
             msg = "Element numbers and incidences must have the same length"
             raise ValueError(msg)
@@ -174,7 +197,7 @@ class Elements:
         return np.unique(self.incidences)
 
     @classmethod
-    def from_container(cls, container: Group) -> "Elements":
+    def from_container(cls, container: Group) -> Elements:
         if not isinstance(container, Mapping):
             msg = f"Argument '{container!r}' is not a Mapping"
             raise TypeError(msg)
@@ -235,7 +258,7 @@ class Mesh:
         return {e.topology: e for e in self.elements}
 
     @classmethod
-    def from_container(cls, container: Group) -> "Mesh":
+    def from_container(cls, container: Group) -> Mesh:
         if not isinstance(container, Mapping):
             msg = f"Argument '{container!r}' is not a Mapping"
             raise TypeError(msg)

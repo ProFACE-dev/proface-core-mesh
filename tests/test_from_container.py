@@ -172,7 +172,7 @@ def test_elements_from_container_rejects_bad_nodes_dataset() -> None:
 
 
 def test_elements_from_container_rejects_incidences_shape() -> None:
-    match = "Element incidences must be 2-dimensional"
+    match = r"Elements\.incidences must be 2-dimensional"
     with pytest.raises(ValueError, match=match):
         Elements.from_container(
             {"numbers": [10], "incidences": [1, 2, 3, 4], "nodes": []},

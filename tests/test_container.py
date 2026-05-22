@@ -164,7 +164,7 @@ def test_elements_direct_initialization_accepts_unsorted_numbers() -> None:
 
 
 def test_elements_direct_initialization_rejects_incidences_shape() -> None:
-    match = "Element incidences must be 2-dimensional"
+    match = r"Elements\.incidences must be 2-dimensional"
     with pytest.raises(ValueError, match=match):
         Elements(
             numbers=[10],
