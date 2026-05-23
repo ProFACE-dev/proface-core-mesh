@@ -107,6 +107,18 @@ class _CheckNDIM:
             raise ValueError(msg)
 
 
+class _CheckIterOf:
+    def __init__(self, typ: type) -> None:
+        self.typ = typ
+
+    def __call__(
+        self, _instance: object, _attribute: object, value: Iterable[Any]
+    ) -> None:
+        if any(not isinstance(x, self.typ) for x in value):
+            msg = f"Not a {self.typ!s}"
+            raise TypeError(msg)
+
+
 def _check_sorted(
     instance: object,
     attribute: attrs.Attribute[npt.NDArray[MESH_IDS]],
@@ -264,21 +276,6 @@ class Elements:
 
 
 @attrs.frozen(kw_only=True)
-class Set:
-    """container for named sets"""
-
-    name: str
-    members: IDS_1D = attrs.field(
-        converter=_to_numbers,
-        eq=_cmp_numpy,
-        validator=[_CheckNDIM(1), _check_sorted],
-    )
-
-    def __len__(self) -> int:
-        return len(self.members)
-
-
-@attrs.frozen(kw_only=True)
 class Mesh:
     """container for mesh data"""
 
@@ -287,8 +284,6 @@ class Mesh:
         converter=_to_tuple,
         validator=_check_mesh_elements,
     )
-    sets_element: tuple[Set, ...] = attrs.field(default=(), converter=_to_tuple)
-    sets_node: tuple[Set, ...] = attrs.field(default=(), converter=_to_tuple)
 
     @property
     def elements_dict(self) -> dict[Topology, Elements]:
@@ -305,6 +300,55 @@ class Mesh:
             Elements.from_container(g)
             for g in _group(container, "elements").values()
         )
+
+        return cls(
+            nodes=nodes,
+            elements=elements,
+        )
+
+    def __str__(self) -> str:
+        return f"Mesh: {self.nodes}; {', '.join(str(g) for g in self.elements)}"
+
+
+@attrs.frozen(kw_only=True)
+class Set:
+    """container for named sets"""
+
+    name: str
+    members: IDS_1D = attrs.field(
+        converter=_to_numbers,
+        eq=_cmp_numpy,
+        validator=[_CheckNDIM(1), _check_sorted],
+    )
+
+    def __len__(self) -> int:
+        return len(self.members)
+
+    def __str__(self) -> str:
+        return f"Set ({self.name}: {len(self):_d})"
+
+
+@attrs.frozen(kw_only=True)
+class NamedRegion:
+    """named sets"""
+
+    sets_element: tuple[Set, ...] = attrs.field(
+        default=(),
+        converter=_to_tuple,
+        validator=_CheckIterOf(Set),
+    )
+    sets_node: tuple[Set, ...] = attrs.field(
+        default=(),
+        converter=_to_tuple,
+        validator=_CheckIterOf(Set),
+    )
+
+    @classmethod
+    def from_container(cls, container: Group) -> NamedRegion:
+        if not isinstance(container, Mapping):
+            msg = f"Argument '{container!r}' is not a Mapping"
+            raise TypeError(msg)
+
         g = _group(container, "sets/element")
         sets_element = tuple(
             Set(name=k, members=_array(g, k, dtype=MESH_IDS)) for k in g
@@ -315,11 +359,6 @@ class Mesh:
         )
 
         return cls(
-            nodes=nodes,
-            elements=elements,
             sets_element=sets_element,
             sets_node=sets_node,
         )
-
-    def __str__(self) -> str:
-        return f"Mesh: {self.nodes}; {', '.join(str(g) for g in self.elements)}"

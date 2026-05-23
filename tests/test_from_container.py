@@ -8,7 +8,14 @@ import h5py  # type: ignore[import-untyped]
 import numpy as np
 import pytest
 
-from proface.core.mesh import DIM, Elements, Mesh, Nodes, Topology
+from proface.core.mesh import (
+    DIM,
+    Elements,
+    Mesh,
+    NamedRegion,
+    Nodes,
+    Topology,
+)
 
 
 def _nodes_container() -> dict[str, Any]:
@@ -218,8 +225,6 @@ def test_mesh_from_container_converts_valid_mapping() -> None:
                 "C3D4": _c3d4_container(),
                 "C3D5": _c3d5_container(),
             },
-            "sets/element": {"fixed": [10, 20]},
-            "sets/node": {"boundary": [1, 2, 3]},
         },
     )
 
@@ -228,10 +233,6 @@ def test_mesh_from_container_converts_valid_mapping() -> None:
         Topology.C3D4,
         Topology.C3D5,
     ]
-    assert mesh.sets_element[0].name == "fixed"
-    np.testing.assert_array_equal(mesh.sets_element[0].members, [10, 20])
-    assert mesh.sets_node[0].name == "boundary"
-    np.testing.assert_array_equal(mesh.sets_node[0].members, [1, 2, 3])
 
 
 def test_mesh_from_container_accepts_empty_mesh() -> None:
@@ -242,15 +243,11 @@ def test_mesh_from_container_accepts_empty_mesh() -> None:
                 "coordinates": np.array(()).reshape((0, DIM)),
             },
             "elements": {},
-            "sets/element": {},
-            "sets/node": {},
         },
     )
 
     assert mesh.nodes.coordinates.shape == (0, DIM)
     assert mesh.elements == ()
-    assert mesh.sets_element == ()
-    assert mesh.sets_node == ()
 
 
 def test_mesh_from_container_accepts_h5py_group() -> None:
@@ -264,10 +261,6 @@ def test_mesh_from_container_accepts_h5py_group() -> None:
         c3d4_group.create_dataset("numbers", data=[10])
         c3d4_group.create_dataset("incidences", data=[[1, 2, 3, 4]])
         c3d4_group.create_dataset("nodes", data=[1, 2, 3, 4])
-        sets_group = mesh_group.create_group("sets")
-        sets_group.create_group("element")
-        sets_group.create_group("node")
-
         mesh = Mesh.from_container(cast("Any", mesh_group))
 
     assert mesh.nodes.coordinates.shape == (4, DIM)
@@ -319,8 +312,6 @@ def test_mesh_from_container_rejects_unknown_node_references() -> None:
                     "coordinates": np.zeros((3, DIM)),
                 },
                 "elements": {"C3D4": _c3d4_container()},
-                "sets/element": {},
-                "sets/node": {},
             },
         )
 
@@ -335,7 +326,96 @@ def test_mesh_from_container_rejects_duplicate_element_numbers() -> None:
             {
                 "nodes": _nodes_container(),
                 "elements": {"C3D4": c3d4, "C3D5": c3d5},
-                "sets/element": {},
+            },
+        )
+
+
+def test_named_region_from_container_converts_valid_mapping() -> None:
+    region = NamedRegion.from_container(
+        {
+            "sets/element": {"fixed": [10, 20]},
+            "sets/node": {"boundary": [1, 2, 3]},
+        },
+    )
+
+    assert region.sets_element[0].name == "fixed"
+    np.testing.assert_array_equal(region.sets_element[0].members, [10, 20])
+    assert region.sets_node[0].name == "boundary"
+    np.testing.assert_array_equal(region.sets_node[0].members, [1, 2, 3])
+
+
+def test_named_region_from_container_accepts_empty_region() -> None:
+    region = NamedRegion.from_container(
+        {
+            "sets/element": {},
+            "sets/node": {},
+        },
+    )
+
+    assert region.sets_element == ()
+    assert region.sets_node == ()
+
+
+def test_named_region_from_container_accepts_h5py_group() -> None:
+    with h5py.File.in_memory() as root_group:
+        sets_group = root_group.create_group("sets")
+        element_group = sets_group.create_group("element")
+        element_group.create_dataset("fixed", data=[10, 20])
+        node_group = sets_group.create_group("node")
+        node_group.create_dataset("boundary", data=[1, 2, 3])
+
+        region = NamedRegion.from_container(cast("Any", root_group))
+
+    assert region.sets_element[0].name == "fixed"
+    np.testing.assert_array_equal(region.sets_element[0].members, [10, 20])
+    assert region.sets_node[0].name == "boundary"
+    np.testing.assert_array_equal(region.sets_node[0].members, [1, 2, 3])
+
+
+def test_named_region_from_container_rejects_non_mapping() -> None:
+    with pytest.raises(TypeError, match="is not a Mapping"):
+        NamedRegion.from_container(cast("Any", object()))
+
+
+def test_named_region_from_container_rejects_missing_element_sets() -> None:
+    with pytest.raises(ValueError, match="missing key: 'sets/element'"):
+        NamedRegion.from_container({"sets/node": {}})
+
+
+def test_named_region_from_container_rejects_missing_node_sets() -> None:
+    with pytest.raises(ValueError, match="missing key: 'sets/node'"):
+        NamedRegion.from_container({"sets/element": {}})
+
+
+def test_named_region_from_container_rejects_element_sets_dataset() -> None:
+    match = r"container\['sets/element'\] must be a group"
+    with pytest.raises(TypeError, match=match):
+        NamedRegion.from_container({"sets/element": [], "sets/node": {}})
+
+
+def test_named_region_from_container_rejects_node_sets_dataset() -> None:
+    match = r"container\['sets/node'\] must be a group"
+    with pytest.raises(TypeError, match=match):
+        NamedRegion.from_container({"sets/element": {}, "sets/node": []})
+
+
+def test_named_region_from_container_rejects_bad_set_dataset() -> None:
+    match = r"container\['fixed'\].*numeric array-like dataset"
+    with pytest.raises(TypeError, match=match):
+        NamedRegion.from_container(
+            {
+                "sets/element": {"fixed": ["invalid"]},
+                "sets/node": {},
+            },
+        )
+
+
+def test_named_region_from_container_rejects_invalid_set_members() -> None:
+    match = r"Set\.members must be strongly sorted"
+    with pytest.raises(ValueError, match=match):
+        NamedRegion.from_container(
+            {
+                "sets/element": {"fixed": [20, 10]},
                 "sets/node": {},
             },
         )

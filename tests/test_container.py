@@ -7,8 +7,15 @@ from typing import Any, cast
 import numpy as np
 import pytest
 
-from proface.core.mesh import DIM, Elements, Mesh, Nodes, Topology
-from proface.core.mesh.container import Set
+from proface.core.mesh import (
+    DIM,
+    Elements,
+    Mesh,
+    NamedRegion,
+    Nodes,
+    Set,
+    Topology,
+)
 
 
 def test_nodes_direct_initialization_converts_valid_inputs() -> None:
@@ -199,6 +206,12 @@ def test_set_direct_initialization_converts_members() -> None:
     np.testing.assert_array_equal(set_.members, members)
 
 
+def test_set_direct_initialization_supports_str() -> None:
+    set_ = Set(name="fixed", members=[1, 2])
+
+    assert str(set_) == "Set (fixed: 2)"
+
+
 def test_mesh_direct_initialization_accepts_valid_elements() -> None:
     nodes = Nodes(numbers=[1, 2, 3, 4, 5], coordinates=np.zeros((5, DIM)))
     c3d4 = Elements(
@@ -237,24 +250,27 @@ def test_mesh_direct_initialization_converts_elements_to_tuple() -> None:
     assert mesh.elements == (elements,)
 
 
-def test_mesh_direct_initialization_converts_sets_to_tuple() -> None:
-    nodes = Nodes(numbers=[1, 2, 3, 4], coordinates=np.zeros((4, DIM)))
-    elements = Elements(
-        numbers=[10],
-        incidences=[[1, 2, 3, 4]],
-    )
+def test_named_region_direct_initialization_converts_sets_to_tuple() -> None:
     element_set = Set(name="fixed-elements", members=[10])
     node_set = Set(name="fixed-nodes", members=[1, 2])
 
-    mesh = Mesh(
-        nodes=nodes,
-        elements=(elements,),
+    region = NamedRegion(
         sets_element=[element_set],
         sets_node=[node_set],
     )
 
-    assert mesh.sets_element == (element_set,)
-    assert mesh.sets_node == (node_set,)
+    assert region.sets_element == (element_set,)
+    assert region.sets_node == (node_set,)
+
+
+def test_named_region_direct_initialization_rejects_non_element_sets() -> None:
+    with pytest.raises(TypeError, match="Not a"):
+        NamedRegion(sets_element=cast("Any", [object()]))
+
+
+def test_named_region_direct_initialization_rejects_non_node_sets() -> None:
+    with pytest.raises(TypeError, match="Not a"):
+        NamedRegion(sets_node=cast("Any", [object()]))
 
 
 def test_mesh_elements_dict_indexes_elements_by_topology() -> None:
