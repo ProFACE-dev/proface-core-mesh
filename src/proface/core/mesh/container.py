@@ -14,6 +14,8 @@ import attrs
 import numpy as np
 import numpy.typing as npt
 
+from .helpers import Group, array, cmp_numpy, group
+
 DIM = 3
 
 
@@ -31,37 +33,9 @@ class Topology(enum.Enum):
 MESH_IDS = np.uint32
 MESH_COORDINATES = np.float32
 
-type Group = Mapping[str, Any]
 type IDS_1D = np.ndarray[tuple[int], np.dtype[MESH_IDS]]
 type IDS_2D = np.ndarray[tuple[int, int], np.dtype[MESH_IDS]]
 type COORDINATES = np.ndarray[tuple[int, int], np.dtype[MESH_COORDINATES]]
-
-
-def _get(container: Group, key: str) -> Any:
-    try:
-        return container[key]
-    except KeyError as exc:
-        msg = f"mesh container missing key: {key!r}"
-        raise ValueError(msg) from exc
-
-
-def _array[T: np.number](
-    container: Group, key: str, *, dtype: type[T]
-) -> npt.NDArray[T]:
-    value = _get(container, key)
-    try:
-        return np.asarray(value, dtype=dtype)
-    except (TypeError, ValueError) as exc:
-        msg = f"mesh container[{key!r}] must be a numeric array-like dataset"
-        raise TypeError(msg) from exc
-
-
-def _group(container: Group, key: str) -> Group:
-    value = _get(container, key)
-    if not isinstance(value, Mapping):
-        msg = f"mesh container[{key!r}] must be a group"
-        raise TypeError(msg)
-    return value
 
 
 def _to_numbers(val: npt.ArrayLike) -> npt.NDArray[MESH_IDS]:
@@ -82,9 +56,6 @@ def _to_tuple(val: Iterable[Set]) -> tuple[Set, ...]: ...
 
 def _to_tuple[T](val: Iterable[T]) -> tuple[T, ...]:
     return tuple(val)
-
-
-_cmp_numpy = attrs.cmp_using(eq=np.array_equal)
 
 
 def _attribute_name(instance: object, attribute: attrs.Attribute[Any]) -> str:
@@ -199,12 +170,12 @@ class Nodes:
 
     numbers: IDS_1D = attrs.field(
         converter=_to_numbers,
-        eq=_cmp_numpy,
+        eq=cmp_numpy,
         validator=[_CheckNDIM(1), _check_sorted],
     )
     coordinates: COORDINATES = attrs.field(
         converter=_to_coordinates,
-        eq=_cmp_numpy,
+        eq=cmp_numpy,
         validator=_check_coordinates,
     )
 
@@ -214,8 +185,8 @@ class Nodes:
             msg = f"Argument '{container!r}' is not a Mapping"
             raise TypeError(msg)
         return cls(
-            numbers=_array(container, "numbers", dtype=MESH_IDS),
-            coordinates=_array(
+            numbers=array(container, "numbers", dtype=MESH_IDS),
+            coordinates=array(
                 container,
                 "coordinates",
                 dtype=MESH_COORDINATES,
@@ -235,12 +206,12 @@ class Elements:
 
     numbers: IDS_1D = attrs.field(
         converter=_to_numbers,
-        eq=_cmp_numpy,
+        eq=cmp_numpy,
         validator=[_CheckNDIM(1), _check_unique],
     )
     incidences: IDS_2D = attrs.field(
         converter=_to_numbers,
-        eq=_cmp_numpy,
+        eq=cmp_numpy,
         validator=[_CheckNDIM(2), _check_incidences],
     )
 
@@ -257,11 +228,11 @@ class Elements:
         if not isinstance(container, Mapping):
             msg = f"Argument '{container!r}' is not a Mapping"
             raise TypeError(msg)
-        numbers = _array(container, "numbers", dtype=MESH_IDS)
-        incidences = _array(container, "incidences", dtype=MESH_IDS)
+        numbers = array(container, "numbers", dtype=MESH_IDS)
+        incidences = array(container, "incidences", dtype=MESH_IDS)
         els = cls(numbers=numbers, incidences=incidences)
 
-        nodes = _array(container, "nodes", dtype=MESH_IDS)
+        nodes = array(container, "nodes", dtype=MESH_IDS)
         if not np.array_equal(nodes, els.nodes):
             msg = "Element nodes are inconsistent with incidences"
             raise ValueError(msg)
@@ -295,10 +266,10 @@ class Mesh:
             msg = f"Argument '{container!r}' is not a Mapping"
             raise TypeError(msg)
 
-        nodes = Nodes.from_container(_group(container, "nodes"))
+        nodes = Nodes.from_container(group(container, "nodes"))
         elements = tuple(
             Elements.from_container(g)
-            for g in _group(container, "elements").values()
+            for g in group(container, "elements").values()
         )
 
         return cls(
@@ -317,7 +288,7 @@ class Set:
     name: str
     members: IDS_1D = attrs.field(
         converter=_to_numbers,
-        eq=_cmp_numpy,
+        eq=cmp_numpy,
         validator=[_CheckNDIM(1), _check_sorted],
     )
 
@@ -349,13 +320,13 @@ class NamedRegion:
             msg = f"Argument '{container!r}' is not a Mapping"
             raise TypeError(msg)
 
-        g = _group(container, "sets/element")
+        g = group(container, "sets/element")
         sets_element = tuple(
-            Set(name=k, members=_array(g, k, dtype=MESH_IDS)) for k in g
+            Set(name=k, members=array(g, k, dtype=MESH_IDS)) for k in g
         )
-        g = _group(container, "sets/node")
+        g = group(container, "sets/node")
         sets_node = tuple(
-            Set(name=k, members=_array(g, k, dtype=MESH_IDS)) for k in g
+            Set(name=k, members=array(g, k, dtype=MESH_IDS)) for k in g
         )
 
         return cls(
