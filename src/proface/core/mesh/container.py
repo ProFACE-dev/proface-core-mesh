@@ -14,9 +14,8 @@ import attrs
 import numpy as np
 import numpy.typing as npt
 
+from ._constants import DIM
 from .helpers import Group, array, cmp_numpy, group
-
-DIM = 3
 
 
 class Topology(enum.Enum):

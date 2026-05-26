@@ -5,9 +5,12 @@
 __all__ = [
     "DIM",
     "Elements",
+    "LoadCase",
     "Mesh",
     "NamedRegion",
     "Nodes",
+    "Quantity",
+    "QuantityKey",
     "Set",
     "Topology",
     "__version__",
@@ -18,4 +21,6 @@ try:
 except ImportError:
     __version__ = "0.0.0"
 
-from .container import DIM, Elements, Mesh, NamedRegion, Nodes, Set, Topology
+from ._constants import DIM
+from .container import Elements, Mesh, NamedRegion, Nodes, Set, Topology
+from .results import LoadCase, Quantity, QuantityKey
